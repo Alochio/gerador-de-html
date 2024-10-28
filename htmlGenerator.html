@@ -71,7 +71,10 @@
     </div>
 
     <div class="containerButton">
-        <button id="downloadBtn" class="btn btn-secondary">Baixar HTML</button>
+        <button id="downloadHtmlBtn" class="btn btn-secondary">Baixar HTML</button>
+        <button id="downloadTxtBtn" class="btn btn-secondary">Baixar TXT</button>
+        <input type="file" id="txtUpload" accept=".txt" class="form-control" style="display: none;" />
+        <button id="importTxtBtn" class="btn btn-secondary">Importar TXT</button>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/marked@3.0.2/marked.min.js"></script>
@@ -80,8 +83,11 @@
             const editor = document.getElementById('editor');
             const output = document.getElementById('output');
             const imageUpload = document.getElementById('imageUpload');
-            const downloadBtn = document.getElementById('downloadBtn');
+            const downloadHtmlBtn = document.getElementById('downloadHtmlBtn');
+            const downloadTxtBtn = document.getElementById('downloadTxtBtn');
+            const importTxtBtn = document.getElementById('importTxtBtn');
             const filenameInput = document.getElementById('filename');
+            const txtUpload = document.getElementById('txtUpload');
 
             let imageUrl = '';
 
@@ -91,7 +97,6 @@
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         imageUrl = e.target.result;
-                        // Adiciona a imagem ao Markdown
                         editor.value += `\n![Imagem](${imageUrl})`;
                         updateOutput();
                     };
@@ -106,25 +111,36 @@
                 output.innerHTML = marked.parse(markdownText);
             }
 
-            downloadBtn.addEventListener('click', () => {
+            downloadHtmlBtn.addEventListener('click', () => {
                 const outputContent = output.innerHTML;
                 const filename = filenameInput.value ? `${filenameInput.value}.html` : 'output.html';
 
                 const htmlContent = `
 <!DOCTYPE html>
-    <html lang="pt-BR">
-    <head>
+<html lang="pt-BR">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>${filename}</title>
-                    <style>
-                        h1{color:blue;}
-                    </style>
-                </head>
-                <body>
-                    ${outputContent}
-                
-                `;
+    <title>${filename}</title>
+    <style>
+        body {
+            width: 100%;
+            margin: 0.5rem;
+        }
+
+        p {
+            text-align: justify;
+        }
+
+        img {
+            width: 50%;
+        }
+    </style>
+</head>
+<body>
+    ${outputContent}
+
+`;
 
                 const blob = new Blob([htmlContent], { type: 'text/html' });
                 const url = URL.createObjectURL(blob);
@@ -133,6 +149,40 @@
                 a.download = filename;
                 a.click();
                 URL.revokeObjectURL(url);
+            });
+
+            downloadTxtBtn.addEventListener('click', () => {
+                const markdownText = editor.value;
+                const filename = filenameInput.value ? `${filenameInput.value}.txt` : 'output.txt';
+
+                const contentToDownload = `Nome do arquivo: ${filenameInput.value}\n\n${markdownText}`;
+                const blob = new Blob([contentToDownload], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+
+            importTxtBtn.addEventListener('click', () => {
+                txtUpload.click();
+            });
+
+            txtUpload.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const textContent = e.target.result;
+                        const lines = textContent.split('\n');
+                        const filenameLine = lines[0].replace('Nome do arquivo: ', '');
+                        filenameInput.value = filenameLine;
+                        editor.value = lines.slice(2).join('\n');
+                        updateOutput();
+                    };
+                    reader.readAsText(file);
+                }
             });
         });
     </script>
